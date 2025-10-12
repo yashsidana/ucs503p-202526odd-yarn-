@@ -1,14 +1,12 @@
 // Code Flowchart
 digraph {
 	CODE [label="Code Overview" color=lightblue shape=box style=filled]
-	math [label="Import: math" color=green shape=ellipse]
-	CODE -> math
-	add [label="Function: add" color=orange shape=rectangle]
-	CODE -> add
-	multiply [label="Function: multiply" color=orange shape=rectangle]
-	CODE -> multiply
-	Calculator [label="Class: Calculator" color=purple shape=folder]
-	CODE -> Calculator
-	result [label="Variable: result" color=red shape=note]
-	CODE -> result
+	i [label="Variable: i" color=red shape=note]
+	CODE -> i
+	t2 [label="Variable: t2" color=red shape=note]
+	CODE -> t2
+	nextTerm [label="Variable: nextTerm" color=red shape=note]
+	CODE -> nextTerm
+	t1 [label="Variable: t1" color=red shape=note]
+	CODE -> t1
 }

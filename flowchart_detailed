@@ -1,0 +1,30 @@
+digraph CodeFlow {
+	node [shape=box style=rounded]
+	rankdir=TB splines=ortho
+	subgraph cluster_classes {
+		color=lightgrey label=Classes style=filled
+		class_SimpleCalc [label="Class: SimpleCalc
+Methods: add"]
+	}
+	subgraph cluster_functions {
+		color=lightblue label=Functions style=filled
+		subgraph cluster_func_add {
+			label="Function: add(self, x, y)"
+			func_add_start [label=Start shape=ellipse]
+			func_add_step_0 [label=Return shape=box]
+			func_add_start -> func_add_step_0
+			func_add_end [label=End shape=ellipse]
+			func_add_step_0 -> func_add_end
+		}
+		subgraph cluster_func_check_value {
+			label="Function: check_value(val)"
+			func_check_value_start [label=Start shape=ellipse]
+			func_check_value_step_0 [label="Decision: 'val > 100'" shape=diamond]
+			func_check_value_start -> func_check_value_step_0
+			func_check_value_step_1 [label=Return shape=box]
+			func_check_value_step_0 -> func_check_value_step_1
+			func_check_value_end [label=End shape=ellipse]
+			func_check_value_step_1 -> func_check_value_end
+		}
+	}
+}
