@@ -1,25 +1,22 @@
 #!/usr/bin/env python3
 """
-summarizer_interactive.py
+analyzer.py
 ---------------------------------
 Accepts user-input Python code, summarizes it using an Abstract Syntax Tree (AST),
 builds a graph model with NetworkX, and generates a logic-based flowchart with Graphviz.
+This file contains the core analysis logic to be used by the FastAPI server.
 """
 
 import ast
 import sys
 
-# Attempt to import required libraries and provide helpful error messages if they are missing.
 try:
     import networkx as nx
     from graphviz import Digraph
 except ImportError as e:
     print(f"Error: A required library is not installed ({e}).")
     print("Please install the necessary libraries to proceed.")
-    print("You can do this by running the following command in your terminal:")
     print("\n    pip install networkx graphviz\n")
-    print("Note: In addition to the Python library, 'graphviz' requires system-level software.")
-    print("Please download and install it from the official website: https://graphviz.org/download/")
     sys.exit(1)
 
 
@@ -80,19 +77,16 @@ def generate_detailed_summary(structure):
     summary = []
     if not any(structure.values()):
         return "No recognizable Python structures found in the code."
-
     if structure["imports"]:
         summary.append("Imports:")
         for imp in sorted(list(set(structure["imports"]))):
             summary.append(f"  - {imp}")
-
     if structure["classes"]:
         summary.append("\nClasses:")
         for name, details in structure["classes"].items():
             summary.append(f"  - Class '{name}':")
             if details["methods"]:
                 summary.append(f"    - Methods: {', '.join(details['methods'])}")
-
     if structure["functions"]:
         summary.append("\nFunctions:")
         for name, details in structure["functions"].items():
@@ -100,33 +94,27 @@ def generate_detailed_summary(structure):
             summary.append(f"    - Arguments: {', '.join(details['args']) if details['args'] else 'None'}")
             if details['flow']:
                 summary.append(f"    - Contains: {', '.join(details['flow'])}")
-
     if structure["globals"]:
         summary.append("\nGlobal Variables:")
         for var in sorted(list(set(structure["globals"]))):
             summary.append(f"  - {var}")
-
     return "\n".join(summary)
 
 
 def build_graph_model(structure):
     """
     Builds a NetworkX DiGraph model from the code structure.
-    This function is part of the 'Python custom algorithms' mentioned in the project plan.
     """
     G = nx.DiGraph()
-
     for name, details in structure.get('classes', {}).items():
         node_id = f"class_{name}"
         label = f"Class: {name}\nMethods: {', '.join(details['methods'])}"
         G.add_node(node_id, label=label, shape='folder', subgraph='cluster_classes')
-
     for name, details in structure.get('functions', {}).items():
         subgraph_name = f'cluster_func_{name}'
         func_start_id = f"func_{name}_start"
         G.add_node(func_start_id, label='Start', shape='ellipse', fillcolor='palegreen', subgraph=subgraph_name, func_name=name, func_args=details['args'])
         last_node_id = func_start_id
-
         flow = details.get('flow', [])
         if not flow:
             empty_node_id = f"func_{name}_empty"
@@ -142,35 +130,27 @@ def build_graph_model(structure):
                     G.add_node(step_id, label=step, shape='box', subgraph=subgraph_name)
                 G.add_edge(last_node_id, step_id)
                 last_node_id = step_id
-
         func_end_id = f"func_{name}_end"
         G.add_node(func_end_id, label='End', shape='ellipse', fillcolor='lightcoral', subgraph=subgraph_name)
         G.add_edge(last_node_id, func_end_id)
-        
     return G
 
 
-def create_logic_flowchart(graph, output_file="flowchart_detailed"):
+def create_logic_flowchart(graph):
     """
-    Creates a Graphviz flowchart from a NetworkX graph model.
+    Creates a Graphviz flowchart from a NetworkX graph model and returns the Digraph object.
     """
     dot = Digraph('CodeFlow', format='png')
     dot.attr('node', style='rounded,filled', fillcolor='white')
     dot.attr(rankdir='TB', splines='ortho', labelloc='t', label='Code Logic Flowchart')
     dot.attr(fontname="Helvetica")
-
-    # Create subgraph objects as needed
     subgraph_clusters = {}
-
     if not graph.nodes:
         dot.node("main", "No functions or classes found to map.")
-    
-    # Create nodes within their designated subgraphs
     for node_id, attrs in graph.nodes(data=True):
         subgraph_name = attrs.get('subgraph')
         if subgraph_name and subgraph_name not in subgraph_clusters:
             if subgraph_name == 'cluster_classes':
-                # Create a new graph object for the cluster
                 cluster = Digraph(subgraph_name)
                 cluster.attr(label='Classes', style='filled', color='lightgrey')
                 subgraph_clusters[subgraph_name] = cluster
@@ -180,67 +160,12 @@ def create_logic_flowchart(graph, output_file="flowchart_detailed"):
                 func_args = attrs.get('func_args', [])
                 cluster.attr(label=f"Function: {func_name}({', '.join(func_args)})", style='rounded')
                 subgraph_clusters[subgraph_name] = cluster
-
-        # Add node to the correct graph (either main dot or a subgraph)
         container = subgraph_clusters.get(subgraph_name, dot)
-        # Create a copy of attributes, removing subgraph info
         node_attrs = {k: v for k, v in attrs.items() if k not in ['subgraph', 'func_name', 'func_args']}
         container.node(node_id, **node_attrs)
-
-    # Add all subgraphs to the main graph
     for cluster in subgraph_clusters.values():
         dot.subgraph(cluster)
-
-    # Add all edges to the main graph
     for u, v in graph.edges():
         dot.edge(u, v)
-
-    try:
-        dot.render(output_file, view=True, cleanup=True)
-        print(f"Flowchart successfully saved as {output_file}.png")
-    except Exception as e:
-        print(f"\n--- Could not generate flowchart ---")
-        print("Please ensure you have Graphviz installed and configured in your system's PATH.")
-        print(f"Error details: {e}")
-
-
-def main():
-    """ Main function to run the interactive tool """
-    print("=== Advanced Code Summarizer + Flowchart Generator (AST, NetworkX, Graphviz) ===")
-    print("Paste your Python code below.")
-    print("(Finish input with Ctrl+D on Mac/Linux or Ctrl+Z then Enter on Windows)\n")
-
-    user_code_lines = sys.stdin.readlines()
-    code_text = "".join(user_code_lines).strip()
-
-    if not code_text:
-        print("No code entered. Exiting.")
-        return
-
-    print("\n--- Analyzing Your Code ---")
-
-    try:
-        tree = ast.parse(code_text)
-        
-        analyzer = CodeAnalyzer()
-        analyzer.visit(tree)
-        code_structure = analyzer.structure
-
-        print("\n--- DETAILED SUMMARY ---")
-        summary = generate_detailed_summary(code_structure)
-        print(summary)
-
-        print("\n--- GENERATING FLOWCHART ---")
-        # 1. Build the NetworkX graph model
-        graph_model = build_graph_model(code_structure)
-        # 2. Render the model using Graphviz
-        create_logic_flowchart(graph_model, "user_code_flowchart")
-
-    except SyntaxError as e:
-        print(f"\nError: Invalid Python code provided. Could not parse.")
-        print(f"Details: {e}")
-
-
-if __name__ == "__main__":
-    main()
+    return dot
 
