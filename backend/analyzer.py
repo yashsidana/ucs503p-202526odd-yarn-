@@ -3,7 +3,7 @@
 import ast
 import os
 from io import BytesIO
-
+import dotenv
 # --- Third-party libraries ---
 try:
     import networkx as nx
@@ -25,11 +25,11 @@ def generate_ai_summary(code_text: str) -> str:
     """
     Generates a natural language summary of the code's purpose using Google's Gemini model.
     """
-    os.environ["GOOGLE_API_KEY"] = "AIzaSyBmW64fAG6rW4CTpIXlZHoMdvpXOXCuYYc"
+   
     if not os.getenv("GOOGLE_API_KEY"):
         return "Error: GOOGLE_API_KEY is not set. Cannot generate AI summary."
 
-    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.4)
+    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.4)
     prompt_template = """
     You are an expert programmer. Analyze the following Python code and provide a concise, plain-text summary.
     Explain the overall purpose of the code, what each function or class does, and the main logic flow.
